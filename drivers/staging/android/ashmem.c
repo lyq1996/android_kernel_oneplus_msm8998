@@ -360,6 +360,8 @@ static inline vm_flags_t calc_vm_may_flags(unsigned long prot)
 static int ashmem_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	struct ashmem_area *asma = file->private_data;
+	unsigned long prot_mask;
+	size_t size;
 	int ret = 0;
 
 	mutex_lock(&ashmem_mutex);
