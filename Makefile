@@ -619,6 +619,15 @@ ifneq ($(CROSS_COMPILE),)
 CLANG_TRIPLE    ?= $(CROSS_COMPILE)
 CLANG_TARGET	:= --target=$(notdir $(CLANG_TRIPLE:%-=%))
 GCC_TOOLCHAIN	:= $(realpath $(dir $(shell which $(LD)))/..)
+KBUILD_CFLAGS  += -mcpu=cortex-a53 -mtune=cortex-a53
+KBUILD_CFLAGS  += $(call cc-option, -mllvm -polly) \
+                  $(call cc-option, -mllvm -polly-run-dce) \
+                  $(call cc-option, -mllvm -polly-run-inliner) \
+                  $(call cc-option, -mllvm -polly-opt-fusion=max) \
+                  $(call cc-option, -mllvm -polly-ast-use-context) \
+                  $(call cc-option, -mllvm -polly-detect-keep-going) \
+                  $(call cc-option, -mllvm -polly-vectorizer=stripmine) \
+                  $(call cc-option, -mllvm -polly-invariant-load-hoisting)
 endif
 ifneq ($(GCC_TOOLCHAIN),)
 CLANG_GCC_TC	:= --gcc-toolchain=$(GCC_TOOLCHAIN)
