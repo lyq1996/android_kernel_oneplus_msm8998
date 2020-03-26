@@ -619,7 +619,7 @@ ifneq ($(CROSS_COMPILE),)
 CLANG_TRIPLE    ?= $(CROSS_COMPILE)
 CLANG_TARGET	:= --target=$(notdir $(CLANG_TRIPLE:%-=%))
 GCC_TOOLCHAIN	:= $(realpath $(dir $(shell which $(LD)))/..)
-KBUILD_CFLAGS  += -mcpu=kryo -mtune=kryo
+KBUILD_CFLAGS  += -mcpu=cortex-a53 -mtune=cortex-a53
 KBUILD_CFLAGS  += $(call cc-option, -mllvm -polly) \
                   $(call cc-option, -mllvm -polly-run-dce) \
                   $(call cc-option, -mllvm -polly-run-inliner) \
