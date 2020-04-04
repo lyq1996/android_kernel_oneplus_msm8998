@@ -1117,6 +1117,41 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 	}
 }
 
+int mdss_dsi_panel_set_hbm_mode(struct mdss_dsi_ctrl_pdata *ctrl, int level)
+{
+	struct dsi_panel_cmds *hbm_on_cmds,*hbm_off_cmds;
+
+	mutex_lock(&ctrl->panel_mode_lock);
+    if (!ctrl->is_panel_on){
+        mutex_unlock(&ctrl->panel_mode_lock);
+        return 0;
+    }
+	hbm_on_cmds = &ctrl->hbm_on_cmds;
+	hbm_off_cmds = &ctrl->hbm_off_cmds;
+    if (level){
+        if (hbm_on_cmds->cmd_cnt){
+            mdss_dsi_panel_cmds_send(ctrl, hbm_on_cmds, CMD_REQ_COMMIT);
+            pr_err("HBM Mode On.\n");
+        } else{
+            pr_err("This Panel not support HBM Mode On.");
+        }
+    } else{
+        if (hbm_off_cmds->cmd_cnt){
+            mdss_dsi_panel_cmds_send(ctrl, hbm_off_cmds, CMD_REQ_COMMIT);
+            pr_err("HBM Mode Off.\n");
+        } else{
+            pr_err("This Panel not support HBM Mode Off.");
+        }
+    }
+    mutex_unlock(&ctrl->panel_mode_lock);
+	return 0;
+}
+
+int mdss_dsi_panel_get_hbm_mode(struct mdss_dsi_ctrl_pdata *ctrl)
+{
+    return ctrl->hbm_mode;
+}
+
 int mdss_dsi_panel_set_srgb_mode(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 {
 	struct dsi_panel_cmds *srgb_on_cmds;
@@ -1437,6 +1472,11 @@ end:
 	if (mdss_dsi_panel_get_adaption_mode(ctrl)) {
 		mdss_dsi_panel_set_adaption_mode(ctrl,
 		   mdss_dsi_panel_get_adaption_mode(ctrl));
+	}
+
+	if (mdss_dsi_panel_get_hbm_mode(ctrl)) {
+		mdss_dsi_panel_set_hbm_mode(ctrl,
+		   mdss_dsi_panel_get_hbm_mode(ctrl));
 	}
 	 return ret;
 }
