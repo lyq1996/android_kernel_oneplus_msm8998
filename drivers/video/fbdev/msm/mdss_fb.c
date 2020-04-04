@@ -85,6 +85,29 @@
 static struct fb_info *fbi_list[MAX_FBI_LIST];
 static int fbi_list_index;
 
+static ssize_t mdss_fb_fake_get(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int ret = 0;
+	int level = 0;
+	ret=scnprintf(buf, PAGE_SIZE, "%d\n", level);
+	return ret;
+}
+
+static ssize_t mdss_fb_fake_set(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	int rc = 0;
+	int level = 0;
+
+	rc = kstrtoint(buf, 10, &level);
+	if (rc) {
+		pr_err("kstrtoint failed. rc=%d\n", rc);
+		return rc;
+	}
+	return count;
+}
+
 static u32 mdss_fb_pseudo_palette[16] = {
 	0x00000000, 0xffffffff, 0xffffffff, 0xffffffff,
 	0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
@@ -960,7 +983,7 @@ static ssize_t mdss_fb_set_srgb_mode(struct device *dev,
 }
 
 static DEVICE_ATTR(SRGB, S_IRUGO | S_IWUSR,
-	mdss_fb_get_srgb_mode, mdss_fb_set_srgb_mode);
+	mdss_fb_fake_get, mdss_fb_fake_set);
 
 static DEVICE_ATTR(srgb, S_IRUGO | S_IWUSR,
 	mdss_fb_get_srgb_mode, mdss_fb_set_srgb_mode);
@@ -1002,7 +1025,7 @@ static ssize_t mdss_fb_set_adobe_rgb_mode(struct device *dev,
 }
 
 static DEVICE_ATTR(Adobe_RGB, S_IRUGO | S_IWUSR,
-	mdss_fb_get_adobe_rgb_mode, mdss_fb_set_adobe_rgb_mode);
+	mdss_fb_fake_get, mdss_fb_fake_set);
 
 static DEVICE_ATTR(adobe_rgb, S_IRUGO | S_IWUSR,
 	mdss_fb_get_adobe_rgb_mode, mdss_fb_set_adobe_rgb_mode);
@@ -1043,7 +1066,7 @@ static ssize_t mdss_fb_set_dci_p3_mode(struct device *dev,
 }
 
 static DEVICE_ATTR(DCI_P3, S_IRUGO | S_IWUSR,
-	mdss_fb_get_dci_p3_mode, mdss_fb_set_dci_p3_mode);
+	mdss_fb_fake_get, mdss_fb_fake_set);
 
 static DEVICE_ATTR(dci_p3, S_IRUGO | S_IWUSR,
 	mdss_fb_get_dci_p3_mode, mdss_fb_set_dci_p3_mode);
@@ -1084,6 +1107,9 @@ static ssize_t mdss_fb_set_night_mode(struct device *dev,
 }
 
 static DEVICE_ATTR(night_mode, S_IRUGO | S_IWUSR,
+	mdss_fb_fake_get, mdss_fb_fake_set);
+
+static DEVICE_ATTR(night_mode_, S_IRUGO | S_IWUSR,
 	mdss_fb_get_night_mode, mdss_fb_set_night_mode);
 
 static ssize_t mdss_fb_get_oneplus_mode(struct device *dev,
@@ -1160,7 +1186,7 @@ static ssize_t mdss_fb_set_adaption_mode(struct device *dev,
 }
 
 static DEVICE_ATTR(adaption_mode, S_IRUGO | S_IWUSR,
-	mdss_fb_get_adaption_mode, mdss_fb_set_adaption_mode);
+	mdss_fb_fake_get, mdss_fb_fake_set);
 
 static DEVICE_ATTR(adaption_mode_, S_IRUGO | S_IWUSR,
 	mdss_fb_get_adaption_mode, mdss_fb_set_adaption_mode);
@@ -1237,6 +1263,7 @@ static struct attribute *mdss_fb_attrs[] = {
 	&dev_attr_adaption_mode_.attr,
 	&dev_attr_dci_p3.attr,
 	&dev_attr_night_mode.attr,
+	&dev_attr_night_mode_.attr,
 	&dev_attr_adaption_mode.attr,
 	&dev_attr_oneplus_mode.attr,
 /* #endif */
