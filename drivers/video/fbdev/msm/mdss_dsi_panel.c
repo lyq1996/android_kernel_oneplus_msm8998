@@ -1514,6 +1514,11 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 		mdss_dsi_panel_set_adaption_mode(ctrl,
 		   mdss_dsi_panel_get_adaption_mode(ctrl));
 	}
+
+	if (mdss_dsi_panel_get_hbm_mode(ctrl)) {
+		mdss_dsi_panel_set_hbm_mode(ctrl,
+		   mdss_dsi_panel_get_hbm_mode(ctrl));
+	}
 	 return ret;
 }
  
