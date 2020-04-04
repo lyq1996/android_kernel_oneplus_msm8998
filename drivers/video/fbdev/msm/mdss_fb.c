@@ -1125,6 +1125,8 @@ static ssize_t mdss_fb_set_adaption_mode(struct device *dev,
 static DEVICE_ATTR(adaption_mode, S_IRUGO | S_IWUSR,
 	mdss_fb_get_adaption_mode, mdss_fb_set_adaption_mode);
 
+static DEVICE_ATTR(adaption_mode_, S_IRUGO | S_IWUSR,
+	mdss_fb_get_adaption_mode, mdss_fb_set_adaption_mode);
 /* #endif */
 
 
@@ -1195,6 +1197,7 @@ static struct attribute *mdss_fb_attrs[] = {
 	&dev_attr_DCI_P3.attr,
 	&dev_attr_srgb.attr,
 	&dev_attr_adobe_rgb.attr,
+	&dev_attr_adaption_mode_.attr,
 	&dev_attr_dci_p3.attr,
 	&dev_attr_night_mode.attr,
 	&dev_attr_adaption_mode.attr,
