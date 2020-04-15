@@ -26,7 +26,6 @@
 
 #define MIN_SCALE 5120 /* Minimum value of RGB recommended */
 
-#define RET_WORKGROUND
 #define RET_WORKGROUND_DELAY 200
 
 #define BACKLIGHT_INDEX 66
