@@ -29,7 +29,6 @@
 
 #include "flicker_free.h"
 #include "mdss_fb.h"
-
 #include "mdss_mdp.h"
 
 struct mdss_panel_data *pdata;
@@ -45,20 +44,13 @@ static u32 depth = 8;
 static bool pcc_enabled = false;
 static bool mdss_backlight_enable = false;
 
-#ifdef RET_WORKGROUND
-static struct delayed_work back_to_backlight_work,back_to_pcc_work;
+static struct delayed_work back_to_backlight_work;
 static void back_to_backlight(struct work_struct *work)
 {
 		pdata = dev_get_platdata(&get_mfd_copy()->pdev->dev);
-			pdata->set_backlight(pdata,backlight);
-				return;
+		pdata->set_backlight(pdata,backlight);
+		return;
 }
-
-static void back_to_pcc(struct work_struct *work)
-{
-	mdss_panel_calc_backlight(backlight);
-}
-#endif
 
 static int flicker_free_push_dither(int depth)
 {
@@ -134,27 +126,16 @@ void set_flicker_free(bool enabled)
 	if (enabled){
 		if ((pdata) && (pdata->set_backlight)){
 			backlight = mdss_panel_calc_backlight(get_bkl_lvl()); 
-		#ifdef RET_WORKGROUND
 			cancel_delayed_work_sync(&back_to_backlight_work);
-			schedule_delayed_work(&back_to_backlight_work, msecs_to_jiffies(RET_WORKGROUND_DELAY-62));
-		#else
-			pdata->set_backlight(pdata,backlight);
-		#endif
+			schedule_delayed_work(&back_to_backlight_work, msecs_to_jiffies(RET_WORKGROUND_DELAY));
 		}else return;
 	}else{
 		if ((pdata) && (pdata->set_backlight)){
 			backlight = get_bkl_lvl();
 			pdata->set_backlight(pdata,backlight);
-		#ifdef RET_WORKGROUND
-			cancel_delayed_work_sync(&back_to_pcc_work);
-			schedule_delayed_work(&back_to_pcc_work, msecs_to_jiffies(RET_WORKGROUND_DELAY+80));
-		#else
 			mdss_panel_calc_backlight(backlight);
-		#endif
 		}else return;
-		
 	}
-	
 } 
 
 void set_elvss_off_threshold(int value)
@@ -182,10 +163,7 @@ static int __init flicker_free_init(void)
 	dither_config.version = mdp_dither_v1_7;
 	dither_config.block = MDP_LOGICAL_BLOCK_DISP_0;
 	dither_payload = kzalloc(sizeof(struct mdp_dither_data_v1_7),GFP_USER);
-#ifdef RET_WORKGROUND
 	INIT_DELAYED_WORK(&back_to_backlight_work, back_to_backlight);
-	INIT_DELAYED_WORK(&back_to_pcc_work,back_to_pcc);
-#endif
 	return 0;
 }
 
