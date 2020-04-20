@@ -3880,6 +3880,63 @@ static void pp_update_pcc_regs(char __iomem *addr,
 	writel_relaxed(cfg_ptr->b.rgb_1, addr + 8);
 }
 
+int mdss_mdp_kernel_pcc_config(struct msm_fb_data_type *mfd,
+				struct mdp_pcc_cfg_data *config,
+				u32 *copyback)
+{
+	int ret = 0;
+	u32 disp_num;
+	struct mdss_pp_res_type_v1_7 *res_cache;
+	struct mdp_pcc_data_v1_7 *v17_kernel_data, v17_usr_config, 
+			*v17_user_data, *v17_real_data;
+
+	ret = pp_validate_dspp_mfd_block(mfd, config->block);
+	if (ret) {
+		pr_err("Invalid block %d mfd index %d, ret %d\n",
+				config->block,
+				(mfd ? mfd->index : -1), ret);
+		return ret;
+	}
+	mutex_lock(&mdss_pp_mutex);
+	disp_num = config->block - MDP_LOGICAL_BLOCK_DISP_0;
+
+	if (!config || !mdss_pp_res) {
+		pr_err("invalid param config %pK pp_res %pK\n",
+			config, mdss_pp_res);
+		return -EINVAL;
+	}
+
+	res_cache = mdss_pp_res->pp_data_v1_7;
+	mdss_pp_res->kernel_pcc_disp_cfg[disp_num] = *config;
+	v17_kernel_data = &res_cache->kernel_pcc_v17_data[disp_num];
+	v17_user_data = &res_cache->user_pcc_v17_data[disp_num];
+	v17_real_data = &res_cache->pcc_v17_data[disp_num];
+	mdss_pp_res->kernel_pcc_disp_cfg[disp_num].cfg_payload =
+		(void *) v17_kernel_data;
+	mdss_pp_res->user_pcc_disp_cfg[disp_num].cfg_payload =
+		(void *) v17_user_data;
+	mdss_pp_res->pcc_disp_cfg[disp_num].cfg_payload =
+		(void *) v17_real_data;
+	memcpy(&v17_usr_config, config->cfg_payload, sizeof(v17_usr_config));
+	ret = 0;
+	if ((config->ops & MDP_PP_OPS_DISABLE)&&
+			!(config->ops & MDP_PP_OPS_WRITE)) {
+		pr_debug("disable pcc\n");
+		pr_debug("op for pcc %d\n", config->ops);
+		ret = 0;
+		goto kernel_pcc_config_exit;
+	}
+	memcpy(v17_kernel_data, &v17_usr_config, sizeof(v17_usr_config));
+	pcc_combine(&mdss_pp_res->kernel_pcc_disp_cfg[disp_num],
+			&mdss_pp_res->user_pcc_disp_cfg[disp_num],
+			&mdss_pp_res->pcc_disp_cfg[disp_num]);
+	pcc_v1_7_combine(&v17_kernel_data, &v17_user_data, &v17_real_data);
+	mdss_pp_res->pp_disp_flags[disp_num] |= PP_FLAGS_DIRTY_PCC;
+kernel_pcc_config_exit:
+	mutex_unlock(&mdss_pp_mutex);
+	return ret;
+}
+
 int mdss_mdp_pcc_config(struct msm_fb_data_type *mfd,
 				struct mdp_pcc_cfg_data *config,
 				u32 *copyback)
