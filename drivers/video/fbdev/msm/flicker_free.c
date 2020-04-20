@@ -44,6 +44,15 @@ static u32 depth = 8;
 static bool pcc_enabled = false;
 static bool mdss_backlight_enable = false;
 
+static int bkl_to_pcc[BACKLIGHT_INDEX] = {42, 56, 67, 75, 84, 91, 98, 104,
+	109, 114, 119, 124, 128, 133, 136, 140, 143, 146, 150, 152, 156, 159,
+	162, 165, 168, 172, 176, 178, 181, 184, 187, 189, 192, 194, 196, 199,
+	202, 204, 206, 209, 211, 213, 215, 217, 220, 222, 224, 226, 228, 230,
+	233, 236, 237, 239, 241, 241, 243, 245, 246, 249, 249, 250, 252, 254, 255, 256};
+
+/* Constants - Customize as needed */
+static int elvss_off_threshold = 66; /* Minimum backlight value that does not flicker */
+
 static struct delayed_work back_to_backlight_work;
 static void back_to_backlight(struct work_struct *work)
 {
