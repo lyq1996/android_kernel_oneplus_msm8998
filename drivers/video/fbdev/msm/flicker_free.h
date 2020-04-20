@@ -21,10 +21,11 @@
 
 #ifndef _FLICKER_FREE_H
 #define _FLICKER_FREE_H
+#include <uapi/linux/msm_mdp.h>
 
-#define MAX_SCALE 32768 /* Maximum value of RGB possible */
+#define FF_MAX_SCALE 32768 /* Maximum value of RGB possible */
 
-#define MIN_SCALE 5120 /* Minimum value of RGB recommended */
+#define FF_MIN_SCALE 5120 /* Minimum value of RGB recommended */
 
 #define RET_WORKGROUND_DELAY 200
 
@@ -54,5 +55,13 @@ int get_elvss_off_threshold(void);
 
 /* get the current flicker free status (enabled or disabled) */
 bool if_flicker_free_enabled(void);
+
+void pcc_v1_7_combine(struct mdp_pcc_data_v1_7 **raw,
+		struct mdp_pcc_data_v1_7 **user,
+		struct mdp_pcc_data_v1_7 **real);
+
+void pcc_combine(struct mdp_pcc_cfg_data *raw,
+		struct mdp_pcc_cfg_data *user,
+		struct mdp_pcc_cfg_data *real);
 
 #endif  /* _FLICKER_FREE_H */
