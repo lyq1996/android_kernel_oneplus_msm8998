@@ -76,6 +76,11 @@
 #define BLANK_FLAG_ULP	FB_BLANK_NORMAL
 #endif
 
+#ifdef CONFIG_FLICKER_FREE
+struct msm_fb_data_type *ff_mfd_copy;
+u32 ff_bkl_lvl_cpy;
+#endif
+
 /*
  * Time period for fps calulation in micro seconds.
  * Default value is set to 1 sec.
