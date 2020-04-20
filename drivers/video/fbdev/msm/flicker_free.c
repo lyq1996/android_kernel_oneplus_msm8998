@@ -72,7 +72,7 @@ static int flicker_free_push_dither(int depth)
 
 static int flicker_free_push_pcc(int temp)
 {
-	pcc_config.ops = mdss_backlight_enable ?
+	pcc_config.ops = pcc_enabled ? 
 		MDP_PP_OPS_WRITE | MDP_PP_OPS_ENABLE :
 			MDP_PP_OPS_WRITE | MDP_PP_OPS_DISABLE;
 	pcc_config.r.r = temp;
@@ -83,14 +83,14 @@ static int flicker_free_push_pcc(int temp)
 	payload->b.b = pcc_config.b.b;
 	pcc_config.cfg_payload = payload;
 	
-	return mdss_mdp_pcc_config(get_mfd_copy(), &pcc_config, &copyback);
+	return mdss_mdp_kernel_pcc_config(get_mfd_copy(), &pcc_config, &copyback);
 }
 
 static int set_brightness(int backlight)
 {
-	int temp = 0;
+	uint32_t temp = 0;
 	backlight = clamp_t(int, ((backlight-1)*(BACKLIGHT_INDEX-1)/(elvss_off_threshold-1)+1), 1, BACKLIGHT_INDEX);
-	temp = clamp_t(int, 0x80*bkl_to_pcc[backlight - 1], MIN_SCALE, MAX_SCALE);
+	temp = clamp_t(int, 0x80*bkl_to_pcc[backlight - 1], FF_MIN_SCALE, FF_MAX_SCALE);
 	for (depth = 8;depth >= 1;depth--){
 		if(temp >= pcc_depth[depth]) break;
 	}
@@ -151,6 +151,132 @@ int get_elvss_off_threshold(void)
 bool if_flicker_free_enabled(void)
 {
 	return mdss_backlight_enable;
+}
+
+static u32 pcc_rescale(u32 raw, u32 user)
+{
+	u32 val = 0;
+
+	if (raw == 0 || raw > 32768)
+		raw = 32768;
+	if (user == 0 || user > 32768)
+		user = 32768;
+	val = (raw * user) / 32768;
+	return val < 2560 ? 2560 : val;
+}
+
+void pcc_v1_7_combine(struct mdp_pcc_data_v1_7 **raw,
+		struct mdp_pcc_data_v1_7 **user,
+		struct mdp_pcc_data_v1_7 **real)
+{
+	struct mdp_pcc_data_v1_7 *real_cpy;
+	real_cpy = kzalloc(sizeof(struct mdp_pcc_data_v1_7), GFP_USER);
+	if (!(*real)) {
+		*real = kzalloc(sizeof(struct mdp_pcc_data_v1_7), GFP_USER);
+		if (!(*real)) {
+			pr_err("%s: alloc failed!", __func__);
+			return;
+		}
+	}
+	if((*raw)&&(*user)){
+		real_cpy->r.c = (*user)->r.c? pcc_rescale((*raw)->r.r, (*user)->r.c)*3/4: 0;
+		real_cpy->r.r = (*user)->r.g? pcc_rescale((*raw)->r.r, (*user)->r.r)*3/4: pcc_rescale((*raw)->r.r, (*user)->r.r);
+		real_cpy->r.g = (*user)->r.g? pcc_rescale((*raw)->r.r, (*user)->r.g)*3/4: 0;
+		real_cpy->r.b = (*user)->r.b? pcc_rescale((*raw)->r.r, (*user)->r.b)*3/4: 0;
+		real_cpy->r.rg = (*user)->r.rg? pcc_rescale((*raw)->r.r, (*user)->r.rg)*3/4: 0;
+		real_cpy->r.gb = (*user)->r.gb? pcc_rescale((*raw)->r.r, (*user)->r.gb)*3/4: 0;
+		real_cpy->r.rb = (*user)->r.rb? pcc_rescale((*raw)->r.r, (*user)->r.rb)*3/4: 0;
+		real_cpy->r.rgb = (*user)->r.rgb? pcc_rescale((*raw)->r.r, (*user)->r.rgb)*3/4: 0;
+		real_cpy->g.c = (*user)->g.c? pcc_rescale((*raw)->r.r, (*user)->g.c)*3/4: 0;
+		real_cpy->g.g = (*user)->g.r? pcc_rescale((*raw)->r.r, (*user)->g.g)*3/4: pcc_rescale((*raw)->r.r, (*user)->g.g);
+		real_cpy->g.r = (*user)->g.r? pcc_rescale((*raw)->r.r, (*user)->g.r)*3/4: 0;
+		real_cpy->g.b = (*user)->g.b? pcc_rescale((*raw)->r.r, (*user)->g.b)*3/4: 0;
+		real_cpy->g.rg = (*user)->g.rg? pcc_rescale((*raw)->r.r, (*user)->g.rg)*3/4: 0;
+		real_cpy->g.gb = (*user)->g.gb? pcc_rescale((*raw)->r.r, (*user)->g.gb)*3/4: 0;
+		real_cpy->g.rb = (*user)->g.rb? pcc_rescale((*raw)->r.r, (*user)->g.rb)*3/4: 0;
+		real_cpy->g.rgb = (*user)->g.rgb? pcc_rescale((*raw)->r.r, (*user)->g.rgb)*3/4: 0;
+		real_cpy->b.c = (*user)->b.c? pcc_rescale((*raw)->r.r, (*user)->b.c)*3/4: 0;
+		real_cpy->b.b = (*user)->b.r? pcc_rescale((*raw)->r.r, (*user)->b.b)*3/4: pcc_rescale((*raw)->r.r, (*user)->b.b);
+		real_cpy->b.r = (*user)->b.r? pcc_rescale((*raw)->r.r, (*user)->b.r)*3/4: 0;
+		real_cpy->b.g = (*user)->b.g? pcc_rescale((*raw)->r.r, (*user)->b.g)*3/4: 0;
+		real_cpy->b.rg = (*user)->b.rg? pcc_rescale((*raw)->r.r, (*user)->b.rg)*3/4: 0;
+		real_cpy->b.gb = (*user)->b.gb? pcc_rescale((*raw)->r.r, (*user)->b.gb)*3/4: 0;
+		real_cpy->b.rb = (*user)->b.rb? pcc_rescale((*raw)->r.r, (*user)->b.rb)*3/4: 0;
+		real_cpy->b.rgb = (*user)->b.rgb? pcc_rescale((*raw)->r.r, (*user)->b.rgb)*3/4: 0;
+	}else{
+		if((*user)){
+			memcpy(real_cpy, (*user), sizeof(struct mdp_pcc_data_v1_7));
+		}else{
+			if((*raw)){
+				real_cpy->r.r = (*raw)->r.r;
+				real_cpy->g.g = (*raw)->g.g;
+				real_cpy->b.b = (*raw)->b.b;
+			}else{
+				real_cpy->r.r = 32768;
+				real_cpy->g.g = 32768;
+				real_cpy->b.b = 32768;
+			}
+		}
+	}
+	memcpy(*real, real_cpy, sizeof(struct mdp_pcc_data_v1_7));
+	kfree(real_cpy);
+}
+
+void pcc_combine(struct mdp_pcc_cfg_data *raw,
+		struct mdp_pcc_cfg_data *user,
+		struct mdp_pcc_cfg_data *real)
+{
+	uint32_t r_ops, u_ops, r_en, u_en;
+	struct mdp_pcc_data_v1_7 *v17_ff_data, *v17_user_data,
+				*v17_real_data,*payload;
+
+	if (!real) {
+		real = kzalloc(sizeof(struct mdp_pcc_cfg_data), GFP_KERNEL);
+		payload = kzalloc(sizeof(struct mdp_pcc_data_v1_7), GFP_USER);
+		payload->r.r = payload->g.g = payload->b.b = 32768;
+		real->cfg_payload = payload;
+		if (!real) {
+			pr_err("%s: alloc failed!", __func__);
+			return;
+		}
+	}
+
+	real->version = mdp_pcc_v1_7;
+	real->block = MDP_LOGICAL_BLOCK_DISP_0;
+
+	r_ops = raw->cfg_payload ? raw->ops : MDP_PP_OPS_DISABLE;
+	u_ops = user->cfg_payload ? user->ops : MDP_PP_OPS_DISABLE;
+	r_en = raw && !(raw->ops & MDP_PP_OPS_DISABLE);
+	u_en = user && !(user->ops & MDP_PP_OPS_DISABLE);
+
+	// user configuration may change often, but the raw configuration
+	// will correspond to calibration data which should only change if
+	// there is a mode switch. we only care about the base
+	// coefficients from the user config.
+
+	if (!r_en || (raw->r.r == 0 && raw->g.g == 0 && raw->b.b == 0)){
+		raw->r.r = raw->g.g = raw->b.b = 32768;
+	}
+	if (!u_en || (user->r.r == 0 && user->g.g == 0 && user->b.b ==0)){
+		user->r.r = user->g.g = user->b.b = 32768;
+	}
+
+	
+	real->r.r = pcc_rescale(raw->r.r, user->r.r);
+	real->g.g = pcc_rescale(raw->g.g, user->g.g);
+	real->b.b = pcc_rescale(raw->b.b, user->b.b);
+	v17_ff_data = raw->cfg_payload;
+	v17_user_data = user->cfg_payload;
+	v17_real_data = real->cfg_payload;
+	pcc_v1_7_combine(&v17_ff_data, &v17_user_data, &v17_real_data);
+	if (r_en && u_en)
+		real->ops = r_ops | u_ops;
+	else if (r_en)
+		real->ops = r_ops;
+	else if (u_en)
+		real->ops = u_ops;
+	else
+		real->ops = MDP_PP_OPS_DISABLE;
 }
 
 static int __init flicker_free_init(void)
