@@ -727,13 +727,18 @@ void core_ctl_check(u64 wallclock)
 	}
 }
 
+static void move_cpu_lru_no_lock(struct cpu_data *cpu_data)
+{
+	list_del(&cpu_data->sib);
+	list_add_tail(&cpu_data->sib, &cpu_data->cluster->lru);
+}
+
 static void move_cpu_lru(struct cpu_data *cpu_data)
 {
 	unsigned long flags;
 
 	spin_lock_irqsave(&state_lock, flags);
-	list_del(&cpu_data->sib);
-	list_add_tail(&cpu_data->sib, &cpu_data->cluster->lru);
+	move_cpu_lru_no_lock(cpu_data);
 	spin_unlock_irqrestore(&state_lock, flags);
 }
 
@@ -744,11 +749,21 @@ static void try_to_isolate(struct cluster_data *cluster, unsigned int need)
 	unsigned int num_cpus = cluster->num_cpus;
 	unsigned int nr_isolated = 0;
 
+	/* Reorder LRU list as per our requirement */
+	spin_lock_irqsave(&state_lock, flags);
+	list_for_each_entry_safe(c, tmp, &cluster->lru, sib) {
+		/* Detect correct cpu */
+		if (c->cpu == cluster->first_cpu) {
+			/* Once detected, move the entry to the tail */
+			move_cpu_lru_no_lock(c);
+			break;
+		}
+	}
+
 	/*
 	 * Protect against entry being removed (and added at tail) by other
 	 * thread (hotplug).
 	 */
-	spin_lock_irqsave(&state_lock, flags);
 	list_for_each_entry_safe(c, tmp, &cluster->lru, sib) {
 		if (!num_cpus--)
 			break;
@@ -822,11 +837,26 @@ static void __try_to_unisolate(struct cluster_data *cluster,
 	unsigned int num_cpus = cluster->num_cpus;
 	unsigned int nr_unisolated = 0;
 
+	/* Reorder LRU list as per our requirement */
+	spin_lock_irqsave(&state_lock, flags);
+	list_for_each_entry_safe(c, tmp, &cluster->lru, sib) {
+		if (!num_cpus--)
+			break;
+
+		/* Detect correct cpu */
+		if (c->cpu == cluster->first_cpu) {
+			/* Do not move first_cpu to tail */
+			continue;
+		}
+		move_cpu_lru_no_lock(c);
+	}
+
+	num_cpus = cluster->num_cpus;
+
 	/*
 	 * Protect against entry being removed (and added at tail) by other
 	 * thread (hotplug).
 	 */
-	spin_lock_irqsave(&state_lock, flags);
 	list_for_each_entry_safe(c, tmp, &cluster->lru, sib) {
 		if (!num_cpus--)
 			break;
