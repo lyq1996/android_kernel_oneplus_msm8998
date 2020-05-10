@@ -1937,7 +1937,8 @@ intel_bts_constraints(struct perf_event *event)
 
 static int intel_alt_er(int idx, u64 config)
 {
-	int alt_idx;
+	int alt_idx = idx;
+
 	if (!(x86_pmu.flags & PMU_FL_HAS_RSP_1))
 		return idx;
 
@@ -2513,7 +2514,7 @@ static int intel_pmu_hw_config(struct perf_event *event)
 		return ret;
 
 	if (event->attr.precise_ip) {
-		if (!event->attr.freq) {
+		if (!(event->attr.freq || (event->attr.wakeup_events && !event->attr.watermark))) {
 			event->hw.flags |= PERF_X86_EVENT_AUTO_RELOAD;
 			if (!(event->attr.sample_type &
 			      ~intel_pmu_free_running_flags(event)))
