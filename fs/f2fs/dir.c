@@ -517,7 +517,6 @@ start:
 		f2fs_show_injection_info(FAULT_DIR_DEPTH);
 		return -ENOSPC;
 	}
-
 	if (unlikely(current_depth == MAX_DIR_HASH_DEPTH))
 		return -ENOSPC;
 

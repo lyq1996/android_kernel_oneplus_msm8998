@@ -340,10 +340,8 @@ static inline unsigned long copy_from_user(void *to,
 static inline unsigned long copy_to_user(void __user *to,
 		const void *from, unsigned long n)
 {
-	if (access_ok(VERIFY_WRITE, to, n)) {
-		check_object_size(from, n, true);
+	if (access_ok(VERIFY_WRITE, to, n))
 		return __copy_tofrom_user(to, (__force void __user *)from, n);
-	}
 	return n;
 }
 

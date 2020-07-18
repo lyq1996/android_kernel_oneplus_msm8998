@@ -763,11 +763,13 @@ long msm_ion_custom_ioctl(struct ion_client *client,
 			handle = ion_handle_get_by_id_nolock(
 					client, (int)data.flush_data.handle);
 			if (IS_ERR(handle)) {
+				mutex_unlock(&client->lock);
 				pr_info("%s: Could not find handle: %d\n",
 					__func__, (int)data.flush_data.handle);
 				unlock_client(client);
 				return PTR_ERR(handle);
 			}
+			mutex_unlock(&client->lock);
 		} else {
 			handle = ion_import_dma_buf_nolock(client,
 							   data.flush_data.fd);

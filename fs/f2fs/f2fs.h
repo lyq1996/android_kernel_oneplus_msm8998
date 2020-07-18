@@ -268,7 +268,7 @@ struct cp_control {
 };
 
 /*
- * indicate meta/data type
+ * For CP/NAT/SIT/SSA readahead
  */
 enum {
 	META_CP,

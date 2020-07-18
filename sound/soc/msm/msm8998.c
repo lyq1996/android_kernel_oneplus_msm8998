@@ -5557,9 +5557,9 @@ static int msm_tdm_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 		break;
 	case AFE_PORT_ID_QUATERNARY_TDM_RX:
 		channels->min = channels->max =
-				tdm_rx_cfg[TDM_QUAT][TDM_0].channels;
+				tdm_rx_cfg[TDM_PRI][TDM_0].channels;
 		param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT,
-			       tdm_rx_cfg[TDM_QUAT][TDM_0].bit_format);
+				tdm_rx_cfg[TDM_PRI][TDM_0].bit_format);
 		rate->min = rate->max =
 				tdm_rx_cfg[TDM_QUAT][TDM_0].sample_rate;
 		break;
