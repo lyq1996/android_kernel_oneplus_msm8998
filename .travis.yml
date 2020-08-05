@@ -38,7 +38,7 @@ jobs:
       after_success:
         - echo "build finished."
         - curl -s "http://sc.ftqq.com/$serverchan_key.send?text=Successed" -d "&desp=Tag:${TRAVIS_TAG}"
-      after_failed:
+      after_failure:
         - echo "build failed."
         - curl -s "http://sc.ftqq.com/$serverchan_key.send?text=Failed" -d "&desp=Tag:${TRAVIS_TAG}"
       deploy:
