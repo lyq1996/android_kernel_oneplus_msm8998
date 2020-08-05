@@ -1,0 +1,51 @@
+language: c
+dist: trusty
+
+os:
+  - linux
+
+env:
+  global:
+    - compiler=$(if [ -e compiler ];then cat compiler;else echo "notDefine";fi)
+
+before_install:
+  # fetch toolchian gcc4.9
+  - cd ~/build/lyq1996/
+  - if [ "$compiler" = "clang" ]; then echo "Not finish yet"; else echo $compiler; wget -c https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/+archive/961622e926a1b21382dba4dd9fe0e5fb3ee5ab7c.tar.gz; mkdir aarch64-linux-android-4.9; tar -zxf a9b70fc1b59747d1334677e539b2ef4c752a59a1.tar.gz -C aarch64-linux-android-4.9; export PATH=$PATH:$PWD/aarch64-linux-android-4.9/bin/; export CROSS_COMPILE=aarch64-linux-android-; export ARCH=arm64; export SUBARCH=arm64; fi
+
+stages:
+  - name: build kernel
+    if: tag IS present
+
+jobs:
+  # job parallel
+  include:
+    - stage: build kernel
+      script: 
+      - cd ~/build/lyq1996/android_kernel_oneplus_msm8998/
+      - make O=out lcblues-perf_defconfig;
+      - if [ "$compiler" = "clang" ]; then echo "use clang to compile";echo "to fill"; else echo "use gcc to compile"; echo "to fill"; fi
+      #- make -j$(nproc --all) CC=clang O=out
+      #- make -j$(nproc --all) O=out
+      
+      - cd ~/build/lyq1996/
+      - git clone https://github.com/lyq1996/AnyKernel3.git -b master
+      - cd AnyKernel3
+      #- cp ~/lyq1996/build/android_kernel_oneplus_msm8998/out/arch/arm64/boot/Image.gz-dtb ./
+      - cp ~/build/lyq1996/android_kernel_oneplus_msm8998/Makefile ./
+      - zip -r9 OP5_5T-lcblues-Kernel-$TRAVIS_TAG.zip * -x .git README.md *placeholder build.sh *.zip
+      - cp OP5_5T-lcblues-Kernel-$TRAVIS_TAG.zip ~/build/lyq1996/android_kernel_oneplus_msm8998/
+      - cd ~/build/lyq1996/android_kernel_oneplus_msm8998/
+      after_success:
+        - echo "build finish."
+      deploy:
+        skip_cleanup: true
+        provider: releases
+        token: $github_oauth_key
+        on:
+          tags: true
+        file: 
+          - OP5_5T-lcblues-Kernel-$TRAVIS_TAG.zip
+      after_deploy:
+        - echo "Send notifacation to ServerChan."
+        - curl -s "http://sc.ftqq.com/$serverchan_key.send?text=Kernel" -d "&desp=OP5_5T-lcblues-Kernel-${TRAVIS_TAG}.zip"
