@@ -1,6 +1,6 @@
 VERSION = 4
 PATCHLEVEL = 4
-SUBLEVEL = 230
+SUBLEVEL = 232
 EXTRAVERSION =
 NAME = Blurry Fish Butt
 
@@ -615,7 +615,7 @@ ifneq ($(CROSS_COMPILE),)
 CLANG_TRIPLE    ?= $(CROSS_COMPILE)
 CLANG_TARGET	:= --target=$(notdir $(CLANG_TRIPLE:%-=%))
 GCC_TOOLCHAIN_DIR := $(dir $(shell which $(CROSS_COMPILE)elfedit))
-CLANG_PREFIX	:= --prefix=$(GCC_TOOLCHAIN_DIR)
+CLANG_PREFIX	:= --prefix=$(GCC_TOOLCHAIN_DIR)$(notdir $(CROSS_COMPILE))
 GCC_TOOLCHAIN	:= $(realpath $(GCC_TOOLCHAIN_DIR)/..)
 KBUILD_CFLAGS  += -mcpu=cortex-a53 -mtune=cortex-a53
 KBUILD_CFLAGS  += $(call cc-option, -mllvm -polly) \
