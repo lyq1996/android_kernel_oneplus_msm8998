@@ -1,0 +1,58 @@
+language: c
+dist: focal
+
+os:
+  - linux
+
+env:
+  global:
+    - compiler=$(if [ -e compiler ];then cat compiler;else echo "notDefine";fi)
+    - clang_release=$(if [ "$compiler" = "clang" ];then cat clang-release;else echo "notDefine";fi)
+
+before_install:
+  # fetch toolchian gcc4.9
+  - cd ~/build/lyq1996/
+  - if [ "$compiler" = "clang" ]; then echo $compiler;wget -c https://github.com/kdrag0n/proton-clang/archive/$clang_release.zip;unzip $clang_release.zip;mv proton-clang-$clang_release clang;export PATH=$PWD/clang/bin:$PATH;export CROSS_COMPILE=aarch64-linux-gnu-;export CROSS_COMPILE_ARM32=arm-linux-gnueabi-;export ARCH=arm64;export SUBARCH=arm64;else echo $compiler; wget -c https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/+archive/961622e926a1b21382dba4dd9fe0e5fb3ee5ab7c.tar.gz;mkdir aarch64-linux-android-4.9; tar -zxf 961622e926a1b21382dba4dd9fe0e5fb3ee5ab7c.tar.gz -C aarch64-linux-android-4.9; export PATH=$PWD/aarch64-linux-android-4.9/bin:$PATH; export CROSS_COMPILE=aarch64-linux-android-; export ARCH=arm64; export SUBARCH=arm64; fi
+  - whereis clang
+  - ${CROSS_COMPILER}ld -v
+  - clang --version
+
+stages:
+  - name: build kernel
+    if: tag IS present
+
+jobs:
+  # job parallel
+  include:
+    - stage: build kernel
+      script: 
+      - cd ~/build/lyq1996/android_kernel_oneplus_msm8998/
+      - make O=out lcblues-perf_defconfig;
+      - if [ "$compiler" = "clang" ]; then echo "use clang to compile";make -j$(nproc --all) CC=clang O=out; else echo "use gcc to compile"; make -j$(nproc --all) O=out; fi
+      
+      after_success:
+        - echo "build finished."
+        - curl -s "http://sc.ftqq.com/$serverchan_key.send?text=Successed" -d "&desp=Tag:${TRAVIS_TAG}"
+        - cd ~/build/lyq1996/
+        - git clone https://github.com/lyq1996/AnyKernel3.git -b master
+        - cd AnyKernel3
+        - cp ~/build/lyq1996/android_kernel_oneplus_msm8998/out/arch/arm64/boot/Image.gz-dtb ./
+        - zip -r9 OP5_5T-lcblues-Kernel-$TRAVIS_TAG.zip * -x .git README.md *placeholder build.sh *.zip
+        - cp OP5_5T-lcblues-Kernel-$TRAVIS_TAG.zip ~/build/lyq1996/android_kernel_oneplus_msm8998/
+        - cd ~/build/lyq1996/android_kernel_oneplus_msm8998/
+
+      after_failure:
+        - echo "build failed."
+        - curl -s "http://sc.ftqq.com/$serverchan_key.send?text=Failed" -d "&desp=Tag:${TRAVIS_TAG}"
+      deploy:
+        skip_cleanup: true
+        provider: releases
+        token: $github_oauth_key
+        on:
+          tags: true
+        file: 
+          - OP5_5T-lcblues-Kernel-$TRAVIS_TAG.zip
+      after_deploy:
+        - echo "Send notifacation to ServerChan."
+        - curl -s "http://sc.ftqq.com/$serverchan_key.send?text=LinkHere" -d "&desp=https://github.com/lyq1996/android_kernel_oneplus_msm8998/releases/download/${TRAVIS_TAG}/OP5_5T-lcblues-Kernel-${TRAVIS_TAG}.zip"
+
